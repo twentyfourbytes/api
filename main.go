@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -15,30 +16,26 @@ import (
 
 var redisClient *redis.Client
 
-const ip = "127.0.0.1"
-const port = "6379"
-const server = "127.0.0.1:8000"
-
 type Configuration struct {
 	Redis struct {
 		Port int    `json:"port"`
 		Ip   string `json:"ip"`
 	} `json:"redis"`
+	Server string `json:"server"`
 }
 
 func main() {
-	file, _ := os.Open("config.json")
+	file, err := os.Open("config.json")
 	defer file.Close()
 	decoder := json.NewDecoder(file)
 	configuration := Configuration{}
-	err := decoder.Decode(&configuration)
+	err = decoder.Decode(&configuration)
 	if err != nil {
 		fmt.Println(err)
-
 	}
 	fmt.Println(configuration)
 	redisClient = redis.NewClient(&redis.Options{
-		Addr: ip + ":" + port,
+		Addr: configuration.Redis.Ip + ":" + strconv.Itoa(configuration.Redis.Port),
 		DB:   0,
 	})
 	r := mux.NewRouter()
