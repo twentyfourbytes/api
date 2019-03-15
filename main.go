@@ -62,5 +62,6 @@ func dns(w http.ResponseWriter, r *http.Request) {
 		dnsServerips = append(dnsServerips, redisClient.Get(v).String())
 	}
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "DNS: %v\n", dnsip)
+	js, _ := json.Marshal(dnsServerips)
+	w.Write(js)
 }
