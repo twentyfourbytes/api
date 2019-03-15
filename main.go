@@ -44,11 +44,11 @@ func main() {
 
 	srv := &http.Server{
 		Handler:      r,
-		Addr:         server,
+		Addr:         configuration.Server,
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
-	fmt.Println("Server running at", server)
+	fmt.Println("Server running at", configuration.Server)
 
 	log.Fatal(srv.ListenAndServe())
 }
