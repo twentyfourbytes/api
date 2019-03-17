@@ -32,7 +32,7 @@ func main() {
 		logger.Fatalf("Failed to open log file: %v", err)
 	}
 	defer lf.Close()
-	defer logger.Init("API", false, true, lf).Close()
+	defer logger.Init("API", true, false, lf).Close()
 
 	file, err := os.Open("config.json")
 	defer file.Close()
