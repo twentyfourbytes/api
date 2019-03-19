@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"expvar"
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/go-redis/redis"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
@@ -49,14 +52,20 @@ func main() {
 		Addr: configuration.Redis.Ip + ":" + strconv.Itoa(configuration.Redis.Port),
 		DB:   0,
 	})
+
+	corsObj := handlers.AllowedOrigins([]string{"*"})
+
 	r := mux.NewRouter()
 	r.HandleFunc("/dns", getDNS)
 	r.HandleFunc("/ip", getIP)
+	r.HandleFunc("/download", download)
+	r.HandleFunc("/debug/vars", expvarHandler)
+	// r.HandleFunc("/upload", handleUpload)
 
 	http.Handle("/", r)
 
 	srv := &http.Server{
-		Handler:      r,
+		Handler:      handlers.CORS(corsObj)(r),
 		Addr:         configuration.Server,
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
@@ -83,4 +92,18 @@ func getIP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	js, _ := json.Marshal(strings.Split(r.RemoteAddr, ":")[0])
 	w.Write(js)
+}
+
+func expvarHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	fmt.Fprintf(w, "{\n")
+	first := true
+	expvar.Do(func(kv expvar.KeyValue) {
+		if !first {
+			fmt.Fprintf(w, ",\n")
+		}
+		first = false
+		fmt.Fprintf(w, "%q: %s", kv.Key, kv.Value)
+	})
+	fmt.Fprintf(w, "\n}\n")
 }
