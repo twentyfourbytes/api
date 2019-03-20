@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rand"
+	"encoding/json"
 	"expvar"
 	"io"
 	"log"
@@ -20,8 +21,17 @@ var uploads = expvar.NewInt("uploads")
 var downloadMegs = expvar.NewInt("downloadMegs")
 var uploadMegs = expvar.NewInt("uploadMegs")
 
+type Speed struct {
+	Ip        string
+	Mbs       float64
+	Duration  time.Duration
+	Megabytes float64
+}
+
 func download(w http.ResponseWriter, req *http.Request) {
 	ms := req.FormValue("size")
+	randID := req.FormValue("randID")
+
 	if ms == "" {
 		ms = "1"
 	}
@@ -30,15 +40,16 @@ func download(w http.ResponseWriter, req *http.Request) {
 		m = 1
 	}
 	w.Header().Set("Content-length", strconv.FormatUint(m*Megabyte, 10))
-	log.Printf("flood starting addr=%s megabytes=%d\n", extractIP(req.RemoteAddr), m)
-	floodHelper(w, req, LimitedRandomGen(m*Megabyte))
+	w.Header().Set("Content-Type", "application/octet-stream")
+	log.Printf("starting addr=%s megabytes=%d\n", extractIP(req.RemoteAddr), m)
+	fileGenerator(w, req, m, randID)
 }
 
-func floodHelper(w http.ResponseWriter, req *http.Request, reader io.Reader) {
+func fileGenerator(w http.ResponseWriter, req *http.Request, m uint64, randID string) {
 	addConnection()
 	start := time.Now()
 	status := "finished"
-	written, err := io.Copy(w, reader)
+	written, err := io.Copy(w, LimitedRandomGen(m*Megabyte))
 
 	if err != nil {
 		status = "aborted"
@@ -47,7 +58,10 @@ func floodHelper(w http.ResponseWriter, req *http.Request, reader io.Reader) {
 	megabytes := float64(written) / Megabyte
 	mbs := megabytes / duration.Seconds()
 	removeConnection(int64(megabytes), 0)
-	log.Printf("flood %s addr=%s duration=%s megabytes=%.1f speed=%.1fMB/s\n", status, extractIP(req.RemoteAddr), duration, megabytes, mbs)
+	s := &Speed{Ip: extractIP(req.RemoteAddr), Duration: duration, Megabytes: megabytes, Mbs: mbs}
+	sjson, _ := json.Marshal(s)
+	redisClient.Set(randID+strconv.FormatInt(int64(m), 10), sjson, 0)
+	log.Printf("%s addr=%s duration=%s megabytes=%.1f speed=%.1fMB/s\n", status, extractIP(req.RemoteAddr), duration, megabytes, mbs)
 }
 
 func addConnection() {

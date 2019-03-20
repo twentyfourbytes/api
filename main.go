@@ -59,6 +59,8 @@ func main() {
 	r.HandleFunc("/dns", getDNS)
 	r.HandleFunc("/ip", getIP)
 	r.HandleFunc("/download", download)
+	r.HandleFunc("/speed", getSpeed)
+
 	r.HandleFunc("/debug/vars", expvarHandler)
 	// r.HandleFunc("/upload", handleUpload)
 
@@ -85,6 +87,22 @@ func getDNS(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	js, _ := json.Marshal(dnsServerips)
+	w.Write(js)
+}
+
+func getSpeed(w http.ResponseWriter, r *http.Request) {
+	var speeds []Speed
+	vars := r.URL.Query().Get("r")
+	dnsip := redisClient.Keys(vars + "*")
+	for _, v := range dnsip.Val() {
+		val := redisClient.Get(v)
+		var s Speed
+		b, _ := val.Bytes()
+		json.Unmarshal(b, &s)
+		speeds = append(speeds, s)
+	}
+	w.WriteHeader(http.StatusOK)
+	js, _ := json.Marshal(speeds)
 	w.Write(js)
 }
 
