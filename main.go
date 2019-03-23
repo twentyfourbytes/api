@@ -16,19 +16,13 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/niktrix/api/config"
 )
 
 var redisClient *redis.Client
 
-type Configuration struct {
-	Redis struct {
-		Port int    `json:"port"`
-		Ip   string `json:"ip"`
-	} `json:"redis"`
-	Server string `json:"server"`
-}
-
 func main() {
+	configuration := config.Config()
 
 	lf, err := os.OpenFile("log.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0660)
 	if err != nil {
@@ -37,19 +31,9 @@ func main() {
 	defer lf.Close()
 	defer logger.Init("API", true, false, lf).Close()
 
-	file, err := os.Open("config.json")
-	defer file.Close()
-	if err != nil {
-		logger.Fatal("Error While opening config file", err)
-	}
-	decoder := json.NewDecoder(file)
-	configuration := Configuration{}
-	err = decoder.Decode(&configuration)
-	if err != nil {
-		logger.Error(err)
-	}
+	// initialise redis
 	redisClient = redis.NewClient(&redis.Options{
-		Addr: configuration.Redis.Ip + ":" + strconv.Itoa(configuration.Redis.Port),
+		Addr: configuration.Redis.IP + ":" + strconv.Itoa(configuration.Redis.Port),
 		DB:   0,
 	})
 
