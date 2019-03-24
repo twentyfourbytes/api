@@ -4,7 +4,9 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"expvar"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -22,10 +24,12 @@ var downloadMegs = expvar.NewInt("downloadMegs")
 var uploadMegs = expvar.NewInt("uploadMegs")
 
 type Speed struct {
-	Ip        string
-	Mbs       float64
-	Duration  time.Duration
-	Megabytes float64
+	Ip  string  `json:"ip"`
+	MBs float64 `json:"megabytespersecond"` // Mega Bytes per second
+	Mbs float64 `json:"megabitspersecond"`  // Mega Bits per second
+
+	Duration  time.Duration `json:"duration"`
+	Megabytes float64       `json:"fileseizeinmb"`
 }
 
 func download(w http.ResponseWriter, req *http.Request) {
@@ -45,6 +49,30 @@ func download(w http.ResponseWriter, req *http.Request) {
 	fileGenerator(w, req, m, randID)
 }
 
+func upload(w http.ResponseWriter, req *http.Request) {
+	randID := req.FormValue("randID")
+
+	log.Printf("upload starting addr=%s\n", extractIP(req.RemoteAddr))
+	start := time.Now()
+	status := "finished"
+
+	written, err := io.Copy(ioutil.Discard, req.Body)
+	if err != nil {
+		status = "aborted"
+	}
+
+	duration := time.Since(start)
+	megabytes := float64(written) / Megabyte
+	MBs := megabytes / duration.Seconds()
+	Mbs := MBs * 8
+	message := fmt.Sprintf("upload %s addr=%s duration=%s megabytes=%.1f speed=%.1fMB/s\n", status, extractIP(req.RemoteAddr), duration, megabytes, MBs)
+	log.Print(message)
+	s := &Speed{Ip: extractIP(req.RemoteAddr), Duration: duration, MBs: MBs, Mbs: Mbs, Megabytes: megabytes}
+	js, _ := json.Marshal(s)
+	redisClient.Set(randID, js, 0)
+	w.Write(js)
+}
+
 func fileGenerator(w http.ResponseWriter, req *http.Request, m uint64, randID string) {
 	addConnection()
 	start := time.Now()
@@ -56,9 +84,10 @@ func fileGenerator(w http.ResponseWriter, req *http.Request, m uint64, randID st
 	}
 	duration := time.Since(start)
 	megabytes := float64(written) / Megabyte
-	mbs := megabytes / duration.Seconds()
+	mBs := megabytes / duration.Seconds()
+	mbs := mBs * 8.0
 	removeConnection(int64(megabytes), 0)
-	s := &Speed{Ip: extractIP(req.RemoteAddr), Duration: duration, Megabytes: megabytes, Mbs: mbs}
+	s := &Speed{Ip: extractIP(req.RemoteAddr), Duration: duration, Megabytes: megabytes, MBs: mBs, Mbs: mbs}
 	sjson, _ := json.Marshal(s)
 	redisClient.Set(randID+strconv.FormatInt(int64(m), 10), sjson, 0)
 	log.Printf("%s addr=%s duration=%s megabytes=%.1f speed=%.1fMB/s\n", status, extractIP(req.RemoteAddr), duration, megabytes, mbs)
