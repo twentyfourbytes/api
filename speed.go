@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/logger"
 )
 
 const Megabyte = 1024 * 1024
@@ -59,6 +61,7 @@ func upload(w http.ResponseWriter, req *http.Request) {
 	written, err := io.Copy(ioutil.Discard, req.Body)
 	if err != nil {
 		status = "aborted"
+		logger.Errorln("Error testing upload speed ", err)
 	}
 
 	duration := time.Since(start)
@@ -66,7 +69,7 @@ func upload(w http.ResponseWriter, req *http.Request) {
 	MBs := megabytes / duration.Seconds()
 	Mbs := MBs * 8
 	message := fmt.Sprintf("upload %s addr=%s duration=%s megabytes=%.1f speed=%.1fMB/s\n", status, extractIP(req.RemoteAddr), duration, megabytes, MBs)
-	log.Print(message)
+	logger.Infoln(message)
 	s := &Speed{Ip: extractIP(req.RemoteAddr), Duration: duration, MBs: MBs, Mbs: Mbs, Megabytes: megabytes}
 	js, _ := json.Marshal(s)
 	redisClient.Set(randID, js, 0)
