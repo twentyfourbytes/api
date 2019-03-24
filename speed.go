@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -47,14 +46,14 @@ func download(w http.ResponseWriter, req *http.Request) {
 	}
 	w.Header().Set("Content-length", strconv.FormatUint(m*Megabyte, 10))
 	w.Header().Set("Content-Type", "application/octet-stream")
-	log.Printf("starting addr=%s megabytes=%d\n", extractIP(req.RemoteAddr), m)
+	logger.Infof("starting addr=%s megabytes=%d\n", extractIP(req.RemoteAddr), m)
 	fileGenerator(w, req, m, randID)
 }
 
 func upload(w http.ResponseWriter, req *http.Request) {
 	randID := req.FormValue("randID")
 
-	log.Printf("upload starting addr=%s\n", extractIP(req.RemoteAddr))
+	logger.Infof("upload starting addr=%s\n", extractIP(req.RemoteAddr))
 	start := time.Now()
 	status := "finished"
 
@@ -93,7 +92,7 @@ func fileGenerator(w http.ResponseWriter, req *http.Request, m uint64, randID st
 	s := &Speed{Ip: extractIP(req.RemoteAddr), Duration: duration, Megabytes: megabytes, MBs: mBs, Mbs: mbs}
 	sjson, _ := json.Marshal(s)
 	redisClient.Set(randID+strconv.FormatInt(int64(m), 10), sjson, 0)
-	log.Printf("%s addr=%s duration=%s megabytes=%.1f speed=%.1fMB/s\n", status, extractIP(req.RemoteAddr), duration, megabytes, mbs)
+	logger.Infof("%s addr=%s duration=%s megabytes=%.1f speed=%.1fMB/s\n", status, extractIP(req.RemoteAddr), duration, megabytes, mbs)
 }
 
 func addConnection() {
