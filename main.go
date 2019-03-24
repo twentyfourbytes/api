@@ -55,10 +55,11 @@ func main() {
 	srv := &http.Server{
 		Handler:      handlers.CORS(corsObj)(r),
 		Addr:         configuration.Server,
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Minute,
+		ReadTimeout:  15 * time.Minute,
 	}
 	logger.Infoln("Server running at", configuration.Server)
+	logger.Errorln("Error testing upload speed ")
 
 	logger.Fatal(srv.ListenAndServe())
 }
