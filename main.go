@@ -16,7 +16,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/niktrix/api/config"
+	"github.com/twentyfourbytes/api/config"
 )
 
 var redisClient *redis.Client
