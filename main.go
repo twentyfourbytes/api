@@ -72,6 +72,10 @@ func getDNS(w http.ResponseWriter, r *http.Request) {
 	dnsip := redisClient.Keys(vars + ":*")
 	for _, v := range dnsip.Val() {
 		val := redisClient.Get(v)
+		err := val.Err()
+		if err != nil {
+			logger.Errorln("Error getting redis key", err)
+		}
 		dnsServerips = append(dnsServerips, val.Val())
 	}
 	w.WriteHeader(http.StatusOK)
