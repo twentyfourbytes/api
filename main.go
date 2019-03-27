@@ -67,19 +67,26 @@ func main() {
 func getDNS(w http.ResponseWriter, r *http.Request) {
 	var dnsServerips []string
 	vars := r.URL.Query().Get("r")
+	logger.Infoln("Requested dns query for key ", vars)
+
 	dnsip := redisClient.Keys(vars + ":*")
 	for _, v := range dnsip.Val() {
 		val := redisClient.Get(v)
 		dnsServerips = append(dnsServerips, val.Val())
 	}
 	w.WriteHeader(http.StatusOK)
-	js, _ := json.Marshal(dnsServerips)
+	js, e := json.Marshal(dnsServerips)
+	if e != nil {
+		logger.Errorln(e)
+	}
 	w.Write(js)
 }
 
 func getSpeeds(w http.ResponseWriter, r *http.Request) {
 	var speeds []Speed
 	vars := r.URL.Query().Get("r")
+	logger.Infoln("Requested All speeds for key ", vars)
+
 	dnsip := redisClient.Keys(vars + "*")
 	for _, v := range dnsip.Val() {
 		val := redisClient.Get(v)
@@ -89,23 +96,33 @@ func getSpeeds(w http.ResponseWriter, r *http.Request) {
 		speeds = append(speeds, s)
 	}
 	w.WriteHeader(http.StatusOK)
-	js, _ := json.Marshal(speeds)
+	js, e := json.Marshal(speeds)
+	if e != nil {
+		logger.Errorln(e)
+	}
 	w.Write(js)
 }
 func getSpeed(w http.ResponseWriter, r *http.Request) {
 	vars := r.URL.Query().Get("r")
+	logger.Infoln("Requested speeds for key ", vars)
 	val := redisClient.Get(vars)
 	var s Speed
 	b, _ := val.Bytes()
 	json.Unmarshal(b, &s)
 	w.WriteHeader(http.StatusOK)
-	js, _ := json.Marshal(s)
+	js, e := json.Marshal(s)
+	if e != nil {
+		logger.Errorln(e)
+	}
 	w.Write(js)
 }
 
 func getIP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	js, _ := json.Marshal(strings.Split(r.RemoteAddr, ":")[0])
+	js, e := json.Marshal(strings.Split(r.RemoteAddr, ":")[0])
+	if e != nil {
+		logger.Errorln(e)
+	}
 	w.Write(js)
 }
 
