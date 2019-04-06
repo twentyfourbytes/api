@@ -1,8 +1,8 @@
 
 set -o errexit
 set -o pipefail
-ORG=niktrix
-name=tfb-api
+ORG=twentyfourbytes
+name=backend
 VERSION=$(git rev-parse --short HEAD)
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
