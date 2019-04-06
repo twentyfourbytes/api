@@ -1,0 +1,10 @@
+sudo: true
+language: go
+go:
+  - "1.12"
+install: go build
+deploy:
+  provider: script
+  script: bash bin/docker_build
+  on:
+    branch: master
